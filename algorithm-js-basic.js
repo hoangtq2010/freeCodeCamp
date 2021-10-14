@@ -219,3 +219,34 @@ function translatePigLatin(str) {
 }
 
 translatePigLatin("consonant"); //=> onsonantcay
+
+//DNA Pairing
+function pairElement(str) {
+  let obj = {
+    G : 'C',
+    C : 'G',
+    A : 'T',
+    T : 'A'
+  }
+  let newArr = str.split("")
+  return newArr.map( char => {
+    return [char, obj[char]]
+  })
+}
+pairElement("GCG");//-> [["G", "C"], ["C","G"], ["G", "C"]]
+
+//Missing letters
+function fearNotLetter(str) {
+  var abc = "abcdefghijklmnopqrstuvwxyz"
+  if  (str[0] != abc[0]) {
+    var number = abc.indexOf(str[0])
+    abc = abc.slice(number)
+  }
+  for (var i = 0; i < str.length; i++) {
+    if (str[i] != abc[i]) {
+      return abc[i]
+    }
+  }
+}
+fearNotLetter("stvwx"); //=> u
+fearNotLetter("abce");  //=> d
