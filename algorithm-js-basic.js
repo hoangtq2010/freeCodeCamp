@@ -272,3 +272,19 @@ function convertHTML(str) {
   return str.replace(/[&<>"']/g, element => obj[element]);
 }
 convertHTML("Dolce & Gabbana");//->Dolce &amp; Gabbana
+
+// Sum All Odd Fibonacci Numbers
+function sumFibs(num) {
+  var i = 1, j = 1, tmp = 0
+  var sum = 2
+  while (tmp <= num) {
+    tmp = i + j
+    i = j
+    j = tmp
+    if ( tmp %2 != 0 && tmp <= num) {
+      sum += tmp
+      }
+  } 
+  return sum;
+}
+sumFibs(4); //->1+1+3=5
