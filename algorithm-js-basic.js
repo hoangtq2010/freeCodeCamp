@@ -250,3 +250,25 @@ function fearNotLetter(str) {
 }
 fearNotLetter("stvwx"); //=> u
 fearNotLetter("abce");  //=> d
+
+// Sorted Union
+function uniteUnique(arr, ...arg) {
+  let newArr = []
+  newArr = arr.concat(arg.flat())
+  return [...new Set(newArr)]
+}
+
+uniteUnique([1, 3, 2], [5, 2, 1, 4], [2, 1]); //-> [1,3,2,5,4]
+
+//Convert HTML Entities
+function convertHTML(str) {
+  let obj = {
+    '&' : '&amp;',
+    '<' : '&lt;',
+    '>' : '&gt;',
+    '"'  : '&quot;',
+    "'" : '&apos;'
+  }
+  return str.replace(/[&<>"']/g, element => obj[element]);
+}
+convertHTML("Dolce & Gabbana");//->Dolce &amp; Gabbana
