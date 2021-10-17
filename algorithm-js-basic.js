@@ -288,3 +288,115 @@ function sumFibs(num) {
   return sum;
 }
 sumFibs(4); //->1+1+3=5
+
+// Smallest Common Multiple
+function smallestCommons(arr) {
+  let max = Math.max(...arr)
+  let min = Math.min(...arr)
+  let sum = max
+
+  for (let i = max; i >= min; i--) {
+    if (sum % i !== 0) {
+      sum += max
+      i = max
+    }
+  }
+  return sum;
+}
+smallestCommons([1,5]); //-> 60 chia het 1,2,3,4,5
+
+// Drop it
+function dropElements(arr, func) {
+  for ( var i = 0; i <= arr.length; i++) {
+    if (func(arr[i])){
+      console.log(i)
+      return arr.slice(i)
+    }
+  }
+    return arr.slice(arr.length)
+}
+dropElements([1, 2, 3, 4], function(n) {return n >= 3;}) //-> [3,4]
+
+// Steamroller
+function steamrollArray(arr) {
+  let newArr = [].concat(...arr)    //[1, [2], [3, [[4]]]] -> [ 1, 2, 3, [ [ 4 ] ] ]
+  return newArr.some(i => Array.isArray(i)) ? steamrollArray(newArr) : newArr
+}
+
+steamrollArray([1, [2], [3, [[4]]]]); // -> [ 1, 2, 3, 4 ]
+
+// Binary Agents
+function binaryAgent(str) {
+  str = str.split(" ") //
+[ '01000001','01110010','01100101',...]
+  return str.map(element => String.fromCharCode(parseInt(element, 2))).join('');
+}
+
+binaryAgent("01000001 01110010 01100101 01101110 00100111 
+            01110100 00100000 01100010 01101111 01101110 
+            01100110 01101001 01110010 01100101 01110011
+            00100000 01100110 01110101 01101110 00100001 00111111"); //-> Aren't bonfires fun!?
+// reverse( string to binary )
+function binaryAgent(str) {
+  let newstr = ""
+  for (var i=0; i< str.length; i++) {
+    // console.log(str[i])
+    newstr += (str.charCodeAt(str[i])).toString(2) + " "
+  }
+  console.log(newstr)
+  return newstr
+}
+
+binaryAgent("Aren't bonfires fun!?");
+
+// Everything Be True
+function truthCheck(collection, pre) {
+  return collection.every(i => i[pre]);
+}
+
+truthCheck([{"user": "Tinky-Winky", "sex": "male"},..., {"user": "Po", "sex": "female"}], "sex");
+
+// Arguments Optional
+function addTogether() {
+  var [first, second] = arguments
+  console.log(second)   //1- undefined, 2- 7
+
+  if(typeof (first) !== 'number') {
+    return undefined
+  } if ( second == undefined) {
+    return (second) => addTogether(first, second)
+  } if ( typeof (second) !== 'number') {
+    return undefined
+  }
+  return first + second;
+}
+addTogether(2, 3) //5
+addTogether(5)(7) //-> addTogether(5, 7) -> 12
+
+//Make a Person
+var Person = function(firstAndLast) {
+  console.log(firstAndLast.split(" ")[1])
+  this.getFullName = () => firstAndLast
+  this.getFirstName = () => firstAndLast.split(" ")[0]
+  this.getLastName = () => firstAndLast.split(" ")[1]
+  this.setFirstName = (first) => firstAndLast = first + " " + firstAndLast.split(" ")[1]
+  this.setLastName = (last) => firstAndLast = firstAndLast.split(" ")[0] + " " + last 
+  this.setFullName = (name) => firstAndLast = name
+};
+
+var bob = new Person('Bob Ross');
+bob.getFullName();
+
+// Palindrome Checker
+palindrome("eye") //->true
+palindrome("nope") //-> false
+
+function palindrome(str) {
+  str = str.toLowerCase()
+  str = str.match(/[A-Za-z0-9]/g)       //loại bỏ tất cả ko phải chữ và số
+  console.log(str)                      //[ 'n', 'o', 'p', 'e' ]
+  console.log(str.join(''))             //nope
+  console.log(str.reverse().join(''))   //epon
+
+  return str.join('') == str.reverse().join('')
+}
