@@ -400,3 +400,59 @@ function palindrome(str) {
 
   return str.join('') == str.reverse().join('')
 }
+
+//Caesars Cipher
+function rot13(str) {
+  let text = ''
+  let alphabet = {'A' : 'N','B' : 'O' ,'C' : 'P','D':'Q','E':'R',
+                  'F' :'S','G':'T','H':'U','I':'V','J':'W','K':'X',
+                  'L':'Y','M':'Z','N':'A','O':'B','P':'C','Q':'D',
+                  'R':'E','S':'F','T':'G','U':'H','V':'I','W':'J','X':'K','Y':'L','Z':'M'}
+  for (let key in str) {
+    console.log(str[key])
+    if (!alphabet[str[key]]) {
+      text += str[key]
+    } else {
+      text += alphabet[str[key]]
+    }
+  }
+  return text
+}
+rot13("SERR PBQR PNZC");
+
+// Telephone Number Validator
+/*555-555-5555      ->/^\d{3}-\d{3}-\d{4}$/
+(555)555-5555       ->/^\(\d{3}\)\d{3}-\d{4}$/
+(555) 555-5555      ->/^\(\d{3}\) \d{3}-\d{4}$/
+555 555 5555        ->/^\d{3} \d{3} \d{4}$/
+5555555555          ->/^\d{10}$/
+1 555 555 5555      ->/^1 \d{3} \d{3} \d{4}$/
+1 (555)555-5555      ->/^1 \(\d{3}\)\d{3}-\d{4}$/
+1 (555) 555-5555    ->/^1 \(\d{3}\) \d{3}-\d{4}$/
+1 555-555-5555      ->/^1 \d{3}-\d{3}-\d{4}$/          
+const regArr = [..., ..., ...]
+return regArr.some(pattern => pattern.test(str))     */
+
+function telephoneCheck(str) {
+  let regex = /^1? ?(( ?\d{3}[- ]*)|(\( ?\d{3}[- ]*\) *))\d{3}[- ]?\d{4}$/
+  return regex.test(str);   //so sanh regular expression and a string
+}
+telephoneCheck("555-555-5555");
+
+// Roman Numeral ConverterPassed
+function convertToRoman(num) {
+  let result = ""
+ const numRoman = {
+   M : 1000, CM : 900, D : 500, CD : 400, C : 100, XC : 90,
+   L : 50, XL: 40, X : 10, IX : 9, V : 5, IV : 4, I : 1 }
+ for (let key in numRoman) {
+   console.log(key) //Chạy từ M->I
+   while (numRoman[key] <= num ) {
+     result += key
+     num -= numRoman[key]
+   }
+ }
+ return result;
+}
+
+convertToRoman(36);
