@@ -456,3 +456,62 @@ function convertToRoman(num) {
 }
 
 convertToRoman(36);
+
+
+//Cash Register
+function checkCashRegister(price, cash, cid) {
+  const currencyMoney = { "PENNY" : 1,
+    "NICKEL" : 5 , 
+    "DIME" : 10, 
+    "QUARTER" : 25,
+    "ONE" : 100,
+    "FIVE" : 500, 
+    "TEN" : 1000 , 
+    "TWENTY" : 2000,
+    "ONEHUNDRED" : 10000} 
+
+  //Tính tiền thừa
+  let returnCash = cash *100 - price *100
+  const returnCashCheck = returnCash
+  let status = ''
+  let change = []
+  
+  /*Đảo ngược ngăn đựng tiền để có thể dùng vòng lặp while 
+   lăp từ trên xuống và dừng lại ở giá trị nhỏ hơn số tiền trả */
+  let filterCid = cid.filter(i => i[1] !== 0).reverse()
+  let sumCid = 0
+  
+  //Lọc loại giá tiền phải trả từ to đến nhỏ
+  filterCid.forEach( element => {
+    let type = element[0]
+    let typeSum = element[1] * 100
+    sumCid += typeSum
+    let amount = 0
+    while (returnCash >= currencyMoney[type] && typeSum > 0) {
+      amount += currencyMoney[type]         //đếm giá trị tiền phải trả
+      returnCash -= currencyMoney[type]     //số tiền phải trả giảm dần đến 0
+      typeSum -= currencyMoney[type]        //tiền từ tổng ngăn xếp trừ đi
+    }
+    //Đẩy loại tiền và số tiền phải trả lại vào mảng change[]
+    if (amount !== 0) {
+      change.push([type, amount / 100])
+    }
+  })
+  
+  //Số tiền phải trả vẫn chưa giảm về 0
+  if (returnCash > 0) {
+    status = "INSUFFICIENT_FUNDS"
+    change = []
+  } 
+  //Sổ tiền trả đúng bằng số tiền có trong ngăn xếp và trong ngăn hết tiền
+  else if (returnCash == 0 && returnCashCheck == sumCid) {
+    status = "CLOSED"
+    change = cid
+  } else {
+    status = "OPEN"
+  }
+  
+  return { "status" : status, "change" : change};
+}
+
+checkCashRegister(19.5, 20, [["PENNY", 1.01], ["NICKEL", 2.05], ["DIME", 3.1], ["QUARTER", 4.25], ["ONE", 90], ["FIVE", 55], ["TEN", 20], ["TWENTY", 60], ["ONE HUNDRED", 100]]);
