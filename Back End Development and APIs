@@ -1,0 +1,46 @@
+var express = require('express');
+var app = express();
+let message = {message: "Hello json"}
+var bodyParser = require('body-parser')
+
+// app.use((req, res, next) => {
+//   console.log(`${req.method} ${req.path} - ${req.ip}`)
+//   next()
+// })
+
+// app.get('/', function (req, res, next) {
+//   res.sendFile('views/index.html' , { root : __dirname});
+// })
+// app.use('/public', express.static(__dirname + '/public'))
+// app.get('/json', (req, res) => {
+//   if (process.env.MESSAGE_STYLE === 'uppercase') {
+//     res.json({"message": "HELLO JSON"})
+//   } else {
+//     res.json({"message": "Hello json"})
+//   }
+// })
+
+// app.get('/now', (req, res, next) => {
+//   req.time = new Date().toString()
+//   next()
+//   }, (req, res) => {
+//     res.json({time: req.time})
+// })
+
+// app.get('/:word/echo', (req, res) => {
+//   const { word } = req.params 
+//   res.json({echo: word})
+// })
+// app.get('/name', (req, res) => {
+//     const { first : firstname, last : lastname } = req.query
+//     res.json({ name : `${firstname} ${lastname}`})
+//   })
+
+app.use(bodyParser.urlencoded({extended: false}))
+app.post('/name', (req, res) => {
+    const { first : firstname, last : lastname } = req.body
+    res.json({ name : `${firstname} ${lastname}`})
+  })
+
+
+ module.exports = app;
