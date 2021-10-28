@@ -1,0 +1,72 @@
+var express = require('express');
+// var mongo = require('mongodb');
+var mongoose = require('mongoose');
+var bodyParser = require('body-parser')
+var cors = require('cors');
+var dns = require('dns')
+var urlparser = require('url')
+var app = express();
+
+// Basic Configuration 
+var port = process.env.PORT || 3000;
+mongoose.connect("mongodb+srv://freecodecamp:3YklZ8jyjsAv5PB2@cluster0.h631c.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", { useNewUrlParser: true, useUnifiedTopology: true });
+console.log(mongoose.connection.readyState)
+
+
+/** this project needs a db !! **/ 
+// mongoose.connect(process.env.DB_URI);
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cors());
+
+/** this project needs to parse POST bodies **/
+// you should mount the body-parser here
+
+app.use('/public', express.static(process.cwd() + '/public'));
+
+app.get('/', function(req, res){
+  res.sendFile(process.cwd() + '/views/index.html');
+});
+
+const schema = new mongoose.Schema({url: 'string'})
+const Url = mongoose.model('Url', schema)
+
+// your first API endpoint... 
+app.post("/api/shorturl", async function (req, res) {
+  console.log(req.body) //Obecjt có thuộc tính {url:"abc..."}
+  const urlInput = req.body.url
+  //Dùng urlparser gửi đến dns.lookup để tra cứu, chỉ nhận address có hostname
+  const inputParser = dns.lookup(urlparser.parse(urlInput).hostname, (error, address) => {
+    if(!address) {
+      res.json({error : "Invalid URL"})
+    } else {
+      const url = new Url({url:urlInput})
+      url.save( (err, data) => {
+        res.json({
+          // Save data {url:"abc...", id : ...}
+          original_url : data.url,
+          short_url : data.id
+        })
+      })
+    }
+    // console.log('dns', dns)
+    // console.log('address', address)
+  })
+  // console.log('Something', something)
+})
+
+app.get("/api/shorturl/:id", (req, res) => {
+  const id = req.params.id
+  // Tìm id đã lưu trên database
+  Url.findById(id, (err, data) => {
+    if(!data) {
+      res.json({error : "Invalid URL"})
+    } else {
+      res.redirect(data.url)
+    }
+  })
+})
+  
+
+app.listen(port, function () {
+  console.log('Node.js listening ...');
+});
