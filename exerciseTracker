@@ -1,0 +1,143 @@
+const express = require('express')
+const app = express()
+const bodyParser = require('body-parser')
+const mongoose = require('mongoose')
+const cors = require('cors')
+app.use(cors())
+
+app.use(express.static('public'))
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html')
+});
+
+app.use(bodyParser.urlencoded({ extended: false }))
+
+mongoose.connect("", { useNewUrlParser: true, useUnifiedTopology: true });
+
+const exercisesSchema = new mongoose.Schema({
+  description : { type : String, required : true},
+  duration : { type : Number, required : true },
+  date : String
+})
+let Exercises = mongoose.model('Exercises', exercisesSchema)
+
+const schema = new mongoose.Schema({
+  username : String,
+  log : [exercisesSchema]})
+let Username = mongoose.model('Username', schema)
+
+app.route('/api/users')
+   .post( (req, res) => {
+      // console.log(req.body)
+      const inputUser = req.body.username
+      if(inputUser) {
+        // save model end record
+        const user = new Username({username:inputUser})
+        user.save((err, data) => {
+          res.json({
+            username : data.username,
+            _id : data.id
+          })
+        })
+      }
+      })
+   .get( (req, res) => {
+      Username.find({}, (err, data) => {
+        if(!err) {
+          res.json(data)
+        } else {
+          res.json(console.log(err))
+        }
+      })
+    })
+
+const defaultDate = () => new Date().toISOString().slice(0, 10);
+// returns a string in simplified extended ISO format (YYYY-MM-DD)
+app.route('/api/users/:_id/exercises')
+   .post( (req, res) => {
+    //  console.log(req.body)
+    //  console.log(req.params._id)
+
+     const exercises = new Exercises({
+       description : req.body.description,
+       duration : parseInt(req.body.duration),
+       date : req.body.date || defaultDate()
+     })
+
+     Username.findByIdAndUpdate(
+      req.params._id,
+      {$push : {log : exercises}},
+      { new : true },
+      (err, updateUser) => {
+        // console.log(updateUser)
+        if (!err) {
+          res.json({
+            _id: updateUser.id,
+            username : updateUser.username,
+            date : new Date(exercises.date).toDateString(),
+            description : exercises.description,
+            duration : exercises.duration
+          })
+        }
+     })
+   }
+  )
+
+app.route('/api/users/:_id/logs')
+   .get( (req, res) => {
+     Username.findById(req.params._id, (err, data) => {
+       if(!err) {
+         let resObj = data
+          
+         if (req.query.from || req.query.to) {
+           let fromDate = new Date(0)
+           let toDate = new Date()
+           if (req.query.from) {
+            fromDate = new Date(req.query.from)
+           }
+           if (req.query.to) {
+            toDate = new Date(req.query.to)
+           }
+
+           fromDate = fromDate.getTime()  //default value time 01/07/1970
+           toDate = toDate.getTime()      //time current
+          
+
+          //  lọc ngày trong khoảng
+          resObj.log = resObj.log.filter ((value) => {
+             let valueDate =  new Date(value.date).getTime() //unix
+             return valueDate >= fromDate && valueDate <= toDate
+           })
+         }
+        
+         //use limit
+         if (req.query.limit) {
+           resObj.log = resObj.log.slice(0, req.query.limit)
+         }
+
+         /*Để hiển thị trường count, trước tiên phải gọi phương thức .toJSON () trên đối tượng phản hồi, để làm cho nó có thể thay đổi được.*/
+         resObj = resObj.toJSON()   //return date object as a string
+         resObj['count'] = data.log.length
+
+         let newLogs = resObj.log.map(function (obj) {
+            // console.log(typeof obj.date)
+            return {
+              description: obj.description,
+              duration: obj.duration,
+              date: new Date(obj.date).toDateString(),
+            };
+          });
+          
+          res.json({
+            username: resObj.username,
+            count: resObj.count,
+            _id: resObj._id,
+            log: newLogs,
+          });
+       }
+     })
+   })
+
+const listener = app.listen(process.env.PORT || 3000, () => {
+  console.log('Your app is listening on port ' + listener.address().port)
+})
