@@ -1,0 +1,458 @@
+/** Api */
+const mongoose    = require('mongoose')
+const {Schema} = mongoose
+const ObjectId = mongoose.Types.ObjectId
+const issuSchema = new Schema({
+  issue_title : { type : String, required : true },
+  issue_text : { type : String, required : true },
+  created_on : Date,
+  updated_on : Date,
+  created_by : { type : String, required : true },
+  assigned_to : String,
+  open : Boolean,
+  status_text : String
+})
+const IssuModel = mongoose.model('IssuModel', issuSchema)
+
+const projectSchema = new Schema({
+  name : { type : String, required : true },
+  issues : [issuSchema]
+})
+
+const ProjectModel = mongoose.model('ProjectModel', projectSchema)
+
+module.exports = function (app) {
+
+  app.route('/api/issues/:project')
+  
+    .get(function (req, res){
+      let project = req.params.project;
+      const {_id, issue_title, issue_text, created_on, updated_on, created_by, assigned_to, open, status_text} = req.query
+
+      ProjectModel.aggregate([
+        { $match : { name : project }},
+        { $unwind : "$issues" },
+        _id != undefined ? { $match : {"issues._id" : ObjectId(_id)}} : { $match : {}},
+        open != undefined ?  { $match: { "issues.open": open } } : { $match: {} },
+        issue_title != undefined ? { $match: { "issues.issue_title": issue_title } }: { $match: {} },
+        issue_text != undefined ? { $match: { "issues.issue_text": issue_text } } : { $match: {} },
+        created_by != undefined ? { $match: { "issues.created_by": created_by } } : { $match: {} },
+        assigned_to != undefined ? { $match: { "issues.assigned_to": assigned_to } } : { $match: {} },
+        status_text != undefined ? { $match: { "issues.status_text": status_text } } : { $match: {} }
+      ]).exec((err, data) => {
+        if (!data) {
+          res.json([])
+        } else {
+          let mapData = data.map(e => e.issues)
+          res.json(mapData)
+        }
+      })
+    })
+
+    
+    .post(function (req, res){
+      let project = req.params.project;
+      
+      const { issue_title, issue_text, created_by, assigned_to, status_text} = req.body
+
+      if (!issue_title || !issue_text || !created_by) {
+        return res.json({ error: 'required field(s) missing'})
+      }
+
+      const newIssu = new IssuModel({
+        issue_title : issue_title || "",
+        issue_text : issue_text || "",
+        created_on : new Date,
+        updated_on : new Date,
+        created_by : created_by || "",
+        assigned_to : assigned_to || "",
+        open : true,
+        status_text : status_text || ""
+      })
+
+      ProjectModel.findOne({name :project}, (err, data) => {
+        if(!data) {
+          const newProject = new ProjectModel({ name : project })
+
+          newProject.issues.push(newIssu)
+          newProject.save((err, data) => {
+            if(err || !data) {
+              res.send("Error")
+            } else {
+              res.json(newIssu)
+            }
+          })
+        } else {
+          data.issues.push(newIssu)
+          data.save((err, data) => {
+            if(err || !data) {
+              res.send("Error")
+            } else {
+              res.json(newIssu)
+            }
+          })
+        }
+      })
+
+
+    })
+    
+    .put(function (req, res){
+      let project = req.params.project;
+      const { _id, issue_title, issue_text, created_by, assigned_to, open, status_text } = req.body
+      
+      if (!_id) {
+        res.json({ error: 'missing _id' })
+        return
+      }
+      if(!issue_title && !issue_text && !created_by && !assigned_to && !open && !status_text) {
+        res.json({ error: 'no update field(s) sent', '_id': _id })
+        return
+      }
+
+      ProjectModel.findOne({ name : project}, (err, data) => {
+        if (err) {
+          res.json({ error: 'could not update', '_id': _id })
+        } else {
+           let newData = data.issues.id(_id)
+           if(!newData) {
+             res.json({ error: 'could not update', '_id': _id })
+             return
+           }
+
+           newData.issue_title = issue_title || newData.issue_title
+           newData.issue_text = issue_text || newData.issue_text;
+           newData.created_by = created_by || newData.created_by;
+           newData.assigned_to = assigned_to || newData.assigned_to;
+           newData.status_text = status_text || newData.status_text;
+           newData.updated_on = new Date();
+           newData.open = open;
+           data.save((err, data) => {
+             if (err || !data) {
+               res.json({ error: 'could not update', '_id': _id })
+             } else {
+               res.json({ result: 'successfully updated', '_id': _id })
+             }
+           })
+        }
+      })
+    })
+    
+    .delete(function (req, res){
+      let project = req.params.project;
+      const { _id } = req.body
+      
+      if(!_id) {
+        res.json({ error: 'missing _id' })
+        return
+      }
+
+      ProjectModel.findOne({ name : project }, (err, data) => {
+        if (err || !data) {
+           res.json({ error: 'could not delete', '_id': _id })
+        } else {
+          let idData = data.issues.id(_id)
+          console.log(!idData)
+          if(!idData) {
+             res.json({ error: 'could not delete', '_id': _id })
+             return
+          }
+          idData.remove()
+
+          data.save((err, newdata) => {
+             if (err || !newdata) {
+               res.json({ error: 'could not delete', '_id': idData._id })
+             } else {
+               res.json({ result: 'successfully deleted', '_id': idData._id })
+             }
+           })
+        }
+      })
+    });
+};
+
+
+/** func-test */
+const chaiHttp = require('chai-http');
+const chai = require('chai');
+const assert = chai.assert;
+const server = require('../server');
+
+const mongoose    = require('mongoose')
+mongoose.connect("...", { useNewUrlParser: true, useUnifiedTopology: true });
+chai.use(chaiHttp);
+// Create an issue with every field: POST request to /api/issues/{project}
+// Create an issue with only required fields: POST request to /api/issues/{project}
+// Create an issue with missing required fields: POST request to /api/issues/{project}
+// View issues on a project: GET request to /api/issues/{project}
+// View issues on a project with one filter: GET request to /api/issues/{project}
+// View issues on a project with multiple filters: GET request to /api/issues/{project}
+// Update one field on an issue: PUT request to /api/issues/{project}
+// Update multiple fields on an issue: PUT request to /api/issues/{project}
+// Update an issue with missing _id: PUT request to /api/issues/{project}
+// Update an issue with no fields to update: PUT request to /api/issues/{project}
+// Update an issue with an invalid _id: PUT request to /api/issues/{project}
+// Delete an issue: DELETE request to /api/issues/{project}
+// Delete an issue with an invalid _id: DELETE request to /api/issues/{project}
+// Delete an issue with missing _id: DELETE request to /api/issues/{project}
+let deleteID;
+suite("Functional Tests", function () {
+  suite("Routing Tests", function () {
+    suite("3 Post request Tests", function () {
+      test("Create an issue with every field: POST request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .post("/api/issues/projects")
+          .set("content-type", "application/json")
+          .send({
+            issue_title: "Issue",
+            issue_text: "Functional Test",
+            created_by: "fCC",
+            assigned_to: "Dom",
+            status_text: "Not Done",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            deleteID = res.body._id;
+            assert.equal(res.body.issue_title, "Issue");
+            assert.equal(res.body.assigned_to, "Dom");
+            assert.equal(res.body.created_by, "fCC");
+            assert.equal(res.body.status_text, "Not Done");
+            assert.equal(res.body.issue_text, "Functional Test");
+            done();
+          });
+      });
+      test("Create an issue with only required fields: POST request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .post("/api/issues/projects")
+          .set("content-type", "application/json")
+          .send({
+            issue_title: "Issue",
+            issue_text: "Functional Test",
+            created_by: "fCC",
+            assigned_to: "",
+            status_text: "",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.issue_title, "Issue");
+            assert.equal(res.body.created_by, "fCC");
+            assert.equal(res.body.issue_text, "Functional Test");
+            assert.equal(res.body.assigned_to, "");
+            assert.equal(res.body.status_text, "");
+            done();
+          });
+      });
+      test("Create an issue with missing required fields: POST request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .post("/api/issues/projects")
+          .set("content-type", "application/json")
+          .send({
+            issue_title: "",
+            issue_text: "",
+            created_by: "fCC",
+            assigned_to: "",
+            status_text: "",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "required field(s) missing");
+            done();
+          });
+      });
+    });
+
+    //////////////// GET REQUEST TESTS /////////////////////
+
+    suite("3 Get request Tests", function () {
+      test("View issues on a project: GET request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .get("/api/issues/test-data-abc123")
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.length, 0);
+            done();
+          });
+      });
+      test("View issues on a project with one filter: GET request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .get("/api/issues/apitest")
+          .query({
+            _id: "618d43b6641f66462285aea9",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.deepEqual(res.body[0], {
+              _id: "618d43b6641f66462285aea9",
+              issue_title: "hay2",
+              issue_text: "asdaw",
+              created_on: "2021-11-11T16:24:22.063Z",
+              updated_on: "2021-11-11T16:24:22.063Z",
+              created_by: "zxcre",
+              assigned_to: "",
+              open: true,
+              status_text: "",
+            });
+            done();
+          });
+      });
+      test("View issues on a project with multiple filters: GET request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .get("/api/issues/apitest")
+          .query({
+            issue_title: "Hey",
+            issue_text: "testing",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.deepEqual(res.body[0], {
+              _id: "618d468ac89e93f60ce58937",
+              issue_title: "Hey",
+              issue_text: "testing",
+              created_on: "2021-11-11T16:36:26.058Z",
+              updated_on: "2021-11-11T16:36:26.058Z",
+              created_by: "hoang",
+              assigned_to: "kiss",
+              open: true,
+              status_text: "",
+            });
+
+            done();
+          });
+      });
+    });
+
+    //////////////// PUT REQUEST TESTS /////////////////////
+
+    suite("5 Put request Tests", function () {
+      test("Update one field on an issue: PUT request to /api/issues/test-data-put", function (done) {
+        chai
+          .request(server)
+          .put("/api/issues/apitest")
+          .send({
+            _id: "618d427a92fcf89e2b89984a",
+            issue_title: "different",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.result, "successfully updated");
+            assert.equal(res.body._id, "618d427a92fcf89e2b89984a");
+
+            done();
+          });
+      });
+      test("Update multiple fields on an issue: PUT request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .put("/api/issues/apitest")
+          .send({
+            _id: "618d427a92fcf89e2b89984a",
+            issue_title: "random",
+            issue_text: "random",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.result, "successfully updated");
+            assert.equal(res.body._id, "618d427a92fcf89e2b89984a");
+
+            done();
+          });
+      });
+      test("Update an issue with missing _id: PUT request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .put("/api/issues/test-data-put")
+          .send({
+            issue_title: "update",
+            issue_text: "update",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "missing _id");
+
+            done();
+          });
+      });
+      test("Update an issue with no fields to update: PUT request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .put("/api/issues/test-data-put")
+          .send({
+            _id: "5fe0c500ec2f6f4c1815a770",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "no update field(s) sent");
+
+            done();
+          });
+      });
+      test("Update an issue with an invalid _id: PUT request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .put("/api/issues/apitest")
+          .send({
+            _id: "5fe0c500e672341casdwaw770",
+            issue_title: "update",
+            issue_text: "update",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "could not update");
+
+            done();
+          });
+      });
+    });
+
+    //////////////// DELETE REQUEST TESTS /////////////////////
+
+    suite("3 DELETE request Tests", function () {
+      test("Delete an issue: DELETE request to /api/issues/projects", function (done) {
+        chai
+          .request(server)
+          .delete("/api/issues/projects")
+          .send({
+            _id: deleteID,
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.result, "successfully deleted");
+
+            done();
+          });
+      });
+      test("Delete an issue with an invalid _id: DELETE request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .delete("/api/issues/projects")
+          .send({
+            _id: "5fe0c500ec2f6f4c1815a770invalid",
+          })
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "could not delete");
+
+            done();
+          });
+      });
+      test("Delete an issue with missing _id: DELETE request to /api/issues/{project}", function (done) {
+        chai
+          .request(server)
+          .delete("/api/issues/projects")
+          .send({})
+          .end(function (err, res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.error, "missing _id");
+
+            done();
+          });
+      });
+    });
+  });
+});
