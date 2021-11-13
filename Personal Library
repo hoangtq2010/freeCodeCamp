@@ -42,15 +42,20 @@ module.exports = function (app) {
         return res.send('missing required field title')
       }
       
-      const library = new Library({ title : title })
-      library.save((err, data) => {
-        if(err || !data) {
-          res.send('Error')
+      Library.findOne({title : title}, (err, data) => {
+        if(data) {
+          res.send('Book has been created')
         } else {
-          res.json({ _id : data._id, title : data.title})
+          const library = new Library({ title : title })
+          library.save((err, data) => {
+            if(err || !data) {
+              res.send('Error')
+            } else {
+              res.json({ _id : data._id, title : data.title})
+            }
+          })
         }
       })
-        
     })
     
     .delete(function(req, res){
